@@ -67,8 +67,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    #[should_panic]
+    fn cannot_read_draft() {
+        let post = Post::new();
+        post.content().unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn cannot_approve_draft() {
+        let mut post = Post::new();
+        post.approve().unwrap();
+    }
+
+    #[test]
+    fn can_post_and_read() {
+        let mut post = Post::new();
+        post.add_text("Hello, world!").unwrap();
+        post.request_review().unwrap();
+        post.approve().unwrap();
+        assert_eq!("Hello, world!", post.content().unwrap());
     }
 }
