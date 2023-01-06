@@ -1,64 +1,89 @@
 use std::error::Error;
 
 #[derive(Debug)]
-enum PostState {
-    Draft,
-    AwaitingReview,
-    Posted,
+struct Draft {}
+#[derive(Debug)]
+struct AwaitingReview {}
+#[derive(Debug)]
+struct Posted {}
+
+trait State
+where
+    Self: std::fmt::Debug,
+{
+    fn add_text(&self) -> Result<(), Box<dyn Error>> {
+        Err(format!("Expected Post in Draft, found state {:?}", self).into())
+    }
+
+    fn request_review(&self) -> Result<(), Box<dyn Error>> {
+        Err(format!("Expected Post in Draft, found state {:?}", self).into())
+    }
+
+    fn approve(&self) -> Result<(), Box<dyn Error>> {
+        Err(format!("Expected Post in AwaitingReview, found state {:?}", self).into())
+    }
+
+    fn content(&self) -> Result<(), Box<dyn Error>> {
+        Err(format!("Expected Post in Posted, found state {:?}", self).into())
+    }
+}
+
+impl State for Draft {
+    fn add_text(&self) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+
+    fn request_review(&self) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+}
+
+impl State for AwaitingReview {
+    fn approve(&self) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+}
+
+impl State for Posted {
+    fn content(&self) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
 }
 
 pub struct Post {
-    state: PostState,
+    state: Box<dyn State>,
     text: String,
 }
 
 impl Post {
     pub fn new() -> Self {
         Post {
-            state: PostState::Draft,
+            state: Box::new(Draft {}),
             text: String::new(),
         }
     }
 
     pub fn add_text(&mut self, text: &str) -> Result<(), Box<dyn Error>> {
-        match self.state {
-            PostState::Draft => {
-                self.text.push_str(text);
-                Ok(())
-            }
-            _ => Err(format!("Expected Post in Draft, got state: {:?}", self.state).into()),
-        }
+        self.state.add_text()?;
+        self.text.push_str(text);
+        Ok(())
     }
 
     pub fn request_review(&mut self) -> Result<(), Box<dyn Error>> {
-        match self.state {
-            PostState::Draft => {
-                self.state = PostState::AwaitingReview;
-                Ok(())
-            }
-            _ => Err(format!("Expected Post in Draft, got state: {:?}", self.state).into()),
-        }
+        self.state.request_review()?;
+        self.state = Box::new(AwaitingReview {});
+        Ok(())
     }
 
     pub fn approve(&mut self) -> Result<(), Box<dyn Error>> {
-        match self.state {
-            PostState::AwaitingReview => {
-                self.state = PostState::Posted;
-                Ok(())
-            }
-            _ => Err(format!(
-                "Expected Post in AwaitingReview, got state: {:?}",
-                self.state
-            )
-            .into()),
-        }
+        self.state.approve()?;
+        self.state = Box::new(Posted {});
+        Ok(())
     }
 
     pub fn content(&self) -> Result<&str, Box<dyn Error>> {
-        match self.state {
-            PostState::Posted => Ok(&self.text),
-            _ => Err(format!("Expected Post in Posted, got state: {:?}", self.state).into()),
-        }
+        self.state.content()?;
+        Ok(&self.text)
     }
 }
 
