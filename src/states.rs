@@ -23,6 +23,10 @@ where
         Err(format!("Expected Post in AwaitingReview, found state {:?}", self).into())
     }
 
+    fn reject(&self) -> Result<(), Box<dyn Error>> {
+        Err(format!("Expected Post in AwaitingReview, found state {:?}", self).into())
+    }
+
     fn content(&self) -> Result<(), Box<dyn Error>> {
         Err(format!("Expected Post in Posted, found state {:?}", self).into())
     }
@@ -40,6 +44,10 @@ impl State for Draft {
 
 impl State for AwaitingReview {
     fn approve(&self) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+
+    fn reject(&self) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 }

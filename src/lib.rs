@@ -33,6 +33,12 @@ impl Post {
         Ok(())
     }
 
+    pub fn reject(&mut self) -> Result<(), Box<dyn Error>> {
+        self.state.reject()?;
+        self.state = Box::new(states::Draft {});
+        Ok(())
+    }
+
     pub fn content(&self) -> Result<&str, Box<dyn Error>> {
         self.state.content()?;
         Ok(&self.text)
@@ -52,8 +58,17 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn cannot_approve_draft() {
+    fn cannot_reject_draft() {
         let mut post = Post::new();
+        post.reject().unwrap();
+    }
+
+    #[test]
+    fn can_approve_and_reject() {
+        let mut post = Post::new();
+        post.request_review().unwrap();
+        post.reject().unwrap();
+        post.request_review().unwrap();
         post.approve().unwrap();
     }
 
