@@ -8,6 +8,7 @@ pub struct DraftPost {
 
 pub struct WaitingPost {
     content: String,
+    approvals: u8,
 }
 
 impl Post {
@@ -30,14 +31,26 @@ impl DraftPost {
     pub fn request_review(self) -> WaitingPost {
         WaitingPost {
             content: self.content,
+            approvals: 0,
         }
     }
 }
 
+pub enum SomeApproval {
+    StillWaiting(WaitingPost),
+    Approved(Post),
+}
+
 impl WaitingPost {
-    pub fn approve(self) -> Post {
-        Post {
-            content: self.content,
+    pub fn approve(mut self) -> SomeApproval {
+        match self.approvals {
+            0 => {
+                self.approvals = 1;
+                SomeApproval::StillWaiting(self)
+            }
+            _ => SomeApproval::Approved(Post {
+                content: self.content,
+            }),
         }
     }
 
