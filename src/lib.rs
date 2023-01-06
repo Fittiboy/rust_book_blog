@@ -1,83 +1,73 @@
-use std::error::Error;
-
-mod states;
-
 pub struct Post {
-    state: Box<dyn states::State>,
-    text: String,
+    content: String,
+}
+
+pub struct DraftPost {
+    content: String,
+}
+
+pub struct WaitingPost {
+    content: String,
 }
 
 impl Post {
-    pub fn new() -> Self {
-        Post {
-            state: Box::new(states::Draft {}),
-            text: String::new(),
+    pub fn new() -> DraftPost {
+        DraftPost {
+            content: String::new(),
         }
     }
 
-    pub fn add_text(&mut self, text: &str) -> Result<(), Box<dyn Error>> {
-        self.state.add_text()?;
-        self.text.push_str(text);
-        Ok(())
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+}
+
+impl DraftPost {
+    pub fn add_text(&mut self, text: &str) {
+        self.content.push_str(text);
     }
 
-    pub fn request_review(&mut self) -> Result<(), Box<dyn Error>> {
-        self.state.request_review()?;
-        self.state = Box::new(states::AwaitingReview {});
-        Ok(())
+    pub fn request_review(self) -> WaitingPost {
+        WaitingPost {
+            content: self.content,
+        }
+    }
+}
+
+impl WaitingPost {
+    pub fn approve(self) -> Post {
+        Post {
+            content: self.content,
+        }
     }
 
-    pub fn approve(&mut self) -> Result<(), Box<dyn Error>> {
-        self.state.approve()?;
-        self.state = Box::new(states::Posted {});
-        Ok(())
-    }
-
-    pub fn reject(&mut self) -> Result<(), Box<dyn Error>> {
-        self.state.reject()?;
-        self.state = Box::new(states::Draft {});
-        Ok(())
-    }
-
-    pub fn content(&self) -> Result<&str, Box<dyn Error>> {
-        self.state.content()?;
-        Ok(&self.text)
+    pub fn reject(self) -> DraftPost {
+        DraftPost {
+            content: self.content,
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    #[should_panic]
-    fn cannot_read_draft() {
-        let post = Post::new();
-        post.content().unwrap();
-    }
-
-    #[test]
-    #[should_panic]
-    fn cannot_reject_draft() {
-        let mut post = Post::new();
-        post.reject().unwrap();
-    }
-
     #[test]
     fn can_approve_and_reject() {
         let mut post = Post::new();
-        post.request_review().unwrap();
-        post.reject().unwrap();
-        post.request_review().unwrap();
-        post.approve().unwrap();
+        post.add_text("Hello");
+        let post = post.request_review();
+        let post = post.reject();
+        let post = post.request_review();
+        let post = post.approve();
+        assert_eq!("Hello", post.content());
     }
 
     #[test]
     fn can_post_and_read() {
         let mut post = Post::new();
-        post.add_text("Hello, world!").unwrap();
-        post.request_review().unwrap();
-        post.approve().unwrap();
-        assert_eq!("Hello, world!", post.content().unwrap());
+        post.add_text("Hello, world!");
+        let post = post.request_review();
+        let post = post.approve();
+        assert_eq!("Hello, world!", post.content());
     }
 }
