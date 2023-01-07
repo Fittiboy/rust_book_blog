@@ -8,12 +8,11 @@ fn main() {
 
     post.add_text("I ate a salad for lunch today");
     let post = post.request_review();
-    let post = post.approve();
-    if let StillWaiting(waiting) = post {
-        let post = waiting.approve();
-        if let Approved(approved) = post {
-            let post = approved;
-            assert_eq!("I ate a salad for lunch today", post.content());
-        }
-    }
+    let StillWaiting(post) = post.approve() else {unreachable!(
+        "Post will always be StillWaiting after a single approval"
+    )};
+    let Approved(post) = post.approve() else {unreachable!(
+        "Post will always be Approved after two approvals"
+    )};
+    assert_eq!("I ate a salad for lunch today", post.content());
 }
