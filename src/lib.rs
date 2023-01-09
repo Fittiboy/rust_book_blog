@@ -68,9 +68,7 @@ mod tests {
     #[test]
     fn can_create_draft() {
         let post = Post::new();
-        match post {
-            DraftPost { .. } => assert!(true),
-        }
+        assert_eq!(post.content, "")
     }
 
     #[test]
@@ -80,13 +78,7 @@ mod tests {
         let to_add = String::from("I ate a salad for lunch today");
 
         post.add_text(&to_add);
-        match post {
-            DraftPost { content } if content == to_add => assert!(true),
-            DraftPost { .. } => panic!(
-                "Expected 'I ate a salad for lunch today' as content, got: {}",
-                post.content
-            ),
-        };
+        assert_eq!(post.content, to_add);
     }
 
     #[test]
@@ -95,10 +87,7 @@ mod tests {
 
         post.add_text("I ate a salad for lunch today");
         let post = post.request_review();
-        match post {
-            WaitingPost { approvals: 0, .. } => assert!(true),
-            WaitingPost { .. } => panic!("Should have no approvals, got: {}", post.approvals),
-        };
+        assert_eq!(post.approvals, 0);
     }
 
     #[test]
@@ -110,10 +99,7 @@ mod tests {
         let SomeApproval::StillWaiting(post) = post.approve() else {unreachable!(
             "Post will always be StillWaiting after a single approval"
         )};
-        match post {
-            WaitingPost { approvals: 1, .. } => assert!(true),
-            WaitingPost { .. } => panic!("Should have one approval, got: {}", post.approvals),
-        };
+        assert_eq!(post.approvals, 1);
     }
 
     #[test]
@@ -128,9 +114,8 @@ mod tests {
         let SomeApproval::Approved(post) = post.approve() else {unreachable!(
             "Post will always be Approved after two approvals"
         )};
-        match post {
-            Post { .. } => assert!(true),
-        };
+        // The content method can only be called on the type we want to find
+        assert_ne!("", post.content());
     }
 
     #[test]
