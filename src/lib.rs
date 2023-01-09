@@ -64,23 +64,87 @@ impl WaitingPost {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
-    fn can_approve_and_reject() {
-        let mut post = Post::new();
-        post.add_text("Hello");
-        let post = post.request_review();
-        let post = post.reject();
-        let post = post.request_review();
-        let post = post.approve();
-        assert_eq!("Hello", post.content());
+    fn can_create_draft() {
+        let post = Post::new();
+        match post {
+            DraftPost { .. } => assert!(true),
+        }
     }
 
     #[test]
-    fn can_post_and_read() {
+    fn can_add_text() {
         let mut post = Post::new();
-        post.add_text("Hello, world!");
+
+        let to_add = String::from("I ate a salad for lunch today");
+
+        post.add_text(&to_add);
+        match post {
+            DraftPost { content } if content == to_add => assert!(true),
+            DraftPost { .. } => panic!(
+                "Expected 'I ate a salad for lunch today' as content, got: {}",
+                post.content
+            ),
+        };
+    }
+
+    #[test]
+    fn can_request_review() {
+        let mut post = Post::new();
+
+        post.add_text("I ate a salad for lunch today");
         let post = post.request_review();
-        let post = post.approve();
-        assert_eq!("Hello, world!", post.content());
+        match post {
+            WaitingPost { approvals: 0, .. } => assert!(true),
+            WaitingPost { .. } => panic!("Should have no approvals, got: {}", post.approvals),
+        };
+    }
+
+    #[test]
+    fn can_approve_once() {
+        let mut post = Post::new();
+
+        post.add_text("I ate a salad for lunch today");
+        let post = post.request_review();
+        let SomeApproval::StillWaiting(post) = post.approve() else {unreachable!(
+            "Post will always be StillWaiting after a single approval"
+        )};
+        match post {
+            WaitingPost { approvals: 1, .. } => assert!(true),
+            WaitingPost { .. } => panic!("Should have one approval, got: {}", post.approvals),
+        };
+    }
+
+    #[test]
+    fn can_approve_twice() {
+        let mut post = Post::new();
+
+        post.add_text("I ate a salad for lunch today");
+        let post = post.request_review();
+        let SomeApproval::StillWaiting(post) = post.approve() else {unreachable!(
+            "Post will always be StillWaiting after a single approval"
+        )};
+        let SomeApproval::Approved(post) = post.approve() else {unreachable!(
+            "Post will always be Approved after two approvals"
+        )};
+        match post {
+            Post { .. } => assert!(true),
+        };
+    }
+
+    #[test]
+    fn can_get_content() {
+        let mut post = Post::new();
+
+        post.add_text("I ate a salad for lunch today");
+        let post = post.request_review();
+        let SomeApproval::StillWaiting(post) = post.approve() else {unreachable!(
+            "Post will always be StillWaiting after a single approval"
+        )};
+        let SomeApproval::Approved(post) = post.approve() else {unreachable!(
+            "Post will always be Approved after two approvals"
+        )};
+        assert_eq!("I ate a salad for lunch today", post.content());
     }
 }
