@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 #[derive(Debug, PartialEq)]
 pub struct NoApproval;
 #[derive(Debug, PartialEq)]
@@ -13,7 +15,7 @@ pub struct DraftPost {
 
 pub struct WaitingPost<T> {
     content: String,
-    _approval: T,
+    approval: PhantomData<T>,
 }
 
 impl Post {
@@ -36,7 +38,7 @@ impl DraftPost {
     pub fn request_review(self) -> WaitingPost<NoApproval> {
         WaitingPost {
             content: self.content,
-            _approval: NoApproval {},
+            approval: PhantomData,
         }
     }
 }
@@ -45,7 +47,7 @@ impl WaitingPost<NoApproval> {
     pub fn approve(self) -> WaitingPost<Approval> {
         WaitingPost {
             content: self.content,
-            _approval: Approval,
+            approval: PhantomData,
         }
     }
 }
@@ -91,17 +93,27 @@ mod tests {
         let mut post = Post::new();
 
         post.add_text("I ate a salad for lunch today");
-        let post = post.request_review();
-        assert_eq!(post._approval, NoApproval {});
+        post.request_review();
+    }
+
+    #[test]
+    fn can_reject() {
+        Post::new().request_review().reject();
     }
 
     #[test]
     fn can_approve_once() {
         let mut post = Post::new();
-
         post.add_text("I ate a salad for lunch today");
-        let post = post.request_review().approve();
-        assert_eq!(post._approval, Approval {});
+        post.request_review().approve();
+    }
+
+    #[test]
+    fn can_approve_and_reject() {
+        let mut post = Post::new();
+        post.add_text("I ate a salad for lunch today");
+        let post = post.request_review().approve().reject();
+        assert_eq!(post.content, "I ate a salad for lunch today");
     }
 
     #[test]
