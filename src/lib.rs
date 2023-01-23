@@ -1,3 +1,8 @@
+#[derive(Debug, PartialEq)]
+pub struct NoApproval;
+#[derive(Debug, PartialEq)]
+pub struct Approval;
+
 pub struct Post {
     content: String,
 }
@@ -6,9 +11,9 @@ pub struct DraftPost {
     content: String,
 }
 
-pub struct WaitingPost {
+pub struct WaitingPost<T> {
     content: String,
-    approvals: u8,
+    _approval: T,
 }
 
 impl Post {
@@ -28,32 +33,32 @@ impl DraftPost {
         self.content.push_str(text);
     }
 
-    pub fn request_review(self) -> WaitingPost {
+    pub fn request_review(self) -> WaitingPost<NoApproval> {
         WaitingPost {
             content: self.content,
-            approvals: 0,
+            _approval: NoApproval {},
         }
     }
 }
 
-pub enum SomeApproval {
-    StillWaiting(WaitingPost),
-    Approved(Post),
-}
-
-impl WaitingPost {
-    pub fn approve(mut self) -> SomeApproval {
-        match self.approvals {
-            0 => {
-                self.approvals = 1;
-                SomeApproval::StillWaiting(self)
-            }
-            _ => SomeApproval::Approved(Post {
-                content: self.content,
-            }),
+impl WaitingPost<NoApproval> {
+    pub fn approve(self) -> WaitingPost<Approval> {
+        WaitingPost {
+            content: self.content,
+            _approval: Approval,
         }
     }
+}
 
+impl WaitingPost<Approval> {
+    pub fn approve(self) -> Post {
+        Post {
+            content: self.content,
+        }
+    }
+}
+
+impl<T> WaitingPost<T> {
     pub fn reject(self) -> DraftPost {
         DraftPost {
             content: self.content,
@@ -87,7 +92,7 @@ mod tests {
 
         post.add_text("I ate a salad for lunch today");
         let post = post.request_review();
-        assert_eq!(post.approvals, 0);
+        assert_eq!(post._approval, NoApproval {});
     }
 
     #[test]
@@ -95,11 +100,8 @@ mod tests {
         let mut post = Post::new();
 
         post.add_text("I ate a salad for lunch today");
-        let post = post.request_review();
-        let SomeApproval::StillWaiting(post) = post.approve() else {unreachable!(
-            "Post will always be StillWaiting after a single approval"
-        )};
-        assert_eq!(post.approvals, 1);
+        let post = post.request_review().approve();
+        assert_eq!(post._approval, Approval {});
     }
 
     #[test]
@@ -107,13 +109,7 @@ mod tests {
         let mut post = Post::new();
 
         post.add_text("I ate a salad for lunch today");
-        let post = post.request_review();
-        let SomeApproval::StillWaiting(post) = post.approve() else {unreachable!(
-            "Post will always be StillWaiting after a single approval"
-        )};
-        let SomeApproval::Approved(post) = post.approve() else {unreachable!(
-            "Post will always be Approved after two approvals"
-        )};
+        let post = post.request_review().approve().approve();
         // The content method can only be called on the type we want to find
         assert_ne!("", post.content());
     }
@@ -123,13 +119,7 @@ mod tests {
         let mut post = Post::new();
 
         post.add_text("I ate a salad for lunch today");
-        let post = post.request_review();
-        let SomeApproval::StillWaiting(post) = post.approve() else {unreachable!(
-            "Post will always be StillWaiting after a single approval"
-        )};
-        let SomeApproval::Approved(post) = post.approve() else {unreachable!(
-            "Post will always be Approved after two approvals"
-        )};
+        let post = post.request_review().approve().approve();
         assert_eq!("I ate a salad for lunch today", post.content());
     }
 }
